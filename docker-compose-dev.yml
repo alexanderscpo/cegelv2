@@ -1,0 +1,41 @@
+version: "3.9"
+services:
+  db:
+    image: docker.uclv.cu/postgres
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env.dev
+    environment:
+      - "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"                      # Modificar esto
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-user-db.sh:/docker-entrypoint-initdb.d/init-database.sh
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    links:
+      - postgres
+    volumes:
+      - ./backend:/home/backend
+    env_file:
+      - .env.dev
+    environment:
+      - POSTGRES_NAME=cegelv2
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+    command: ["./wait-for-postgres.sh", "postgres", "python", "manage.py", "runserver", "0.0.0.0:8000"]  # Visitar 127.0.0.1:8000
+  pgadmin:
+    image: docker.uclv.cu/dpage/pgadmin4
+    ports:
+      - "8080:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    links:
+      - postgres
+volumes:
+  pgdata:
